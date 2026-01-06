@@ -6,7 +6,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # 2. Стадия запуска (заменяем openjdk:17-jdk-slim)
-FROM eclipse-temurin:8-jre
+FROM eclipse-temurin:8-jdk
 WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 1111
