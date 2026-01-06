@@ -5,7 +5,10 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-FROM openjdk:17-jdk-slim
+# Было: FROM openjdk:17-jdk-slim
+# Стало (рекомендуемый вариант):
+FROM eclipse-temurin:17-jdk-jammy
+
 WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 1111
