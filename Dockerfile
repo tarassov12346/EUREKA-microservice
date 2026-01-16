@@ -1,30 +1,26 @@
-# --- Этап 1: Сборка (Maven + Alpine) ---
+# --- Этап 1: Сборка ---
 FROM maven:3.9.6-eclipse-temurin-17-alpine AS builder
 WORKDIR /app
 
-# Используем кэш для зависимостей, чтобы не качать их каждый раз
-RUN --mount=type=cache,target=/root/.m2 \
-    COPY pom.xml . && \
-    mvn dependency:go-offline
+# 1. Сначала копируем только pom.xml
+COPY pom.xml .
 
+# 2. Скачиваем зависимости (используем кеш монтирования .m2)
+# Это ускорит сборку в десятки раз при повторных запусках
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline
+
+# 3. Копируем исходники и собираем
 COPY src ./src
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests
 
-# Сборка с использованием кэша
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn clean package -DskipTests
-
-# --- Этап 2: Запуск (JRE вместо JDK + Alpine) ---
-# JRE весит в 2-3 раза меньше, чем JDK. Alpine — самый легкий дистрибутив.
+# --- Этап 2: Финальный образ ---
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Создаем не-привилегированного пользователя для безопасности
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
-
-# Копируем только готовый JAR
+# Копируем результат сборки
 COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 1111
 
+# Запуск
 ENTRYPOINT ["java", "-jar", "app.jar"]
