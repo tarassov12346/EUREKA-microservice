@@ -1,13 +1,14 @@
-# Сборка на JDK 8
-FROM maven:3.8.4-openjdk-8 AS builder
+# 1. Сборка на JDK 8 (используем поддерживаемый образ Temurin)
+FROM maven:3.9.6-eclipse-temurin-8-alpine AS builder
 WORKDIR /app
 COPY pom.xml .
-RUN mvn dependency:go-offline
+# Кеширование зависимостей
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests
 
-# Запуск на JRE 8 (максимально легкий)
-FROM openjdk:8-jre-slim
+# 2. Запуск на JRE 8 (максимально легкий и стабильный)
+FROM eclipse-temurin:8-jre-alpine
 WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 1111
